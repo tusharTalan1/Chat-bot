@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chat App - Room</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body class="chat-body">
+  <div class="chat-container">
+    <aside class="sidebar">
+      <div class="user-profile">
+        <h3 id="current-username">Loading...</h3>
+        <button id="logout-btn" onclick="logout()">Logout</button>
+      </div>
+      
+      <div class="sidebar-section">
+        <h4>Rooms</h4>
+        <ul id="rooms-list">
+          <li class="room active" onclick="joinRoom('global')">Global Chat</li>
+        </ul>
+      </div>
+    </aside>
+
+    <main class="chat-main">
+      <header class="chat-header">
+        <h2 id="room-name">Global Chat</h2>
+      </header>
+
+      <div id="messages-container" class="messages-container">
+      </div>
+
+      <form id="message-form" class="message-form" onsubmit="sendMessage(event)">
+        <input type="text" id="message-input" placeholder="Type a message..." required autocomplete="off">
+        <button type="submit" id="send-btn">Send</button>
+      </form>
+    </main>
+  </div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

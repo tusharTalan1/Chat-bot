@@ -22,11 +22,13 @@ const socketHandler = (io)=>{
   });
 
   io.on('connection', async (socket)=>{
-    await User.findByIdAndUpdate(socket.user._id, { isOnline: true });
-    io.emit('user_status_change', { userId: socket.user._id, isOnline: true });
-
-    socket.on('join_room', (room)=>{
+    socket.on('join_room', async (room)=>{
       socket.join(room);
+      const messages = await Message.find({ room })
+        .populate('sender', 'username avatar')
+        .sort({ createdAt: 1 })
+        .limit(50);
+      socket.emit('load_messages', messages);
     });
 
     socket.on('send_message', async (data)=>{
@@ -53,6 +55,8 @@ const socketHandler = (io)=>{
       await User.findByIdAndUpdate(socket.user._id, { isOnline: false });
       io.emit('user_status_change', { userId: socket.user._id, isOnline: false });
     });
+    await User.findByIdAndUpdate(socket.user._id, { isOnline: true });
+    io.emit('user_status_change', { userId: socket.user._id, isOnline: true });
   });
 };
 

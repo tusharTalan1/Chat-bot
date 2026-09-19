@@ -66,6 +66,29 @@ body {
   color: #7f8c8d;
 }
 
+
+.user-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.status-indicator {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.status-indicator.online {
+  background-color: #2ecc71;
+  box-shadow: 0 0 5px #2ecc71;
+}
+
+.status-indicator.offline {
+  background-color: #95a5a6;
+}
+
 .input-group input {
   width: 100%;
   padding: 10px;

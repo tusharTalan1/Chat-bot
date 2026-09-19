@@ -1,6 +1,7 @@
 let socket;
 let currentUser = null;
-let currentRoom = 'global';
+let currentRoom = sessionStorage.getItem('currentRoom') || 'global';
+let currentRoomName = sessionStorage.getItem('currentRoomName') || 'Global Chat';
 
 const API_URL = '/api/auth';
 
@@ -22,12 +23,54 @@ const initAuth = () => {
       } else {
         currentUser = data;
         initChat();
+        fetchUsers();
       }
     })
     .catch(() => {
       localStorage.removeItem('token');
       window.location.href = '/';
     });
+  }
+};
+
+const fetchUsers = async () => {
+  const token = localStorage.getItem('token');
+  try {
+    const res = await fetch(`${API_URL}/users`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    const users = await res.json();
+    const usersList = document.getElementById('users-list');
+    usersList.innerHTML = '';
+    
+    users.forEach(user => {
+      const li = document.createElement('li');
+      li.className = 'room user-item';
+      li.id = `user-${user._id}`;
+      li.innerHTML = `
+        <span class="status-indicator ${user.isOnline ? 'online' : 'offline'}"></span>
+        ${user.username}
+      `;
+      li.onclick = () => {
+        const roomName = [currentUser._id, user._id].sort().join('_');
+        joinRoom(roomName, user.username);
+      };
+      usersList.appendChild(li);
+    });
+
+
+    if (currentRoom !== 'global') {
+      document.querySelector('#rooms-list .room')?.classList.remove('active');
+      const userIds = currentRoom.split('_');
+      const otherId = userIds.find(id => id !== currentUser._id);
+      if (otherId) {
+        const userLi = document.getElementById(`user-${otherId}`);
+        if (userLi) userLi.classList.add('active');
+      }
+    }
+
+  } catch (err) {
+    console.error(err);
   }
 };
 
@@ -94,11 +137,14 @@ const showError = (msg) => {
 
 const logout = () => {
   localStorage.removeItem('token');
+  sessionStorage.removeItem('currentRoom');
+  sessionStorage.removeItem('currentRoomName');
   window.location.href = '/';
 };
 
 const initChat = () => {
   document.getElementById('current-username').textContent = currentUser.username;
+  document.getElementById('room-name').textContent = currentRoomName;
   
   socket = io({
     auth: { token: localStorage.getItem('token') }
@@ -110,11 +156,28 @@ const initChat = () => {
     }
   });
 
-  socket.emit('join_room', currentRoom);
+  socket.on('connect', () => {
+
+    joinRoom(currentRoom, currentRoomName);
+  });
+
+  socket.on('load_messages', (messages) => {
+    messages.forEach(msg => appendMessage(msg));
+  });
 
   socket.on('receive_message', (message) => {
     if (message.room === currentRoom) {
       appendMessage(message);
+    }
+  });
+
+  socket.on('user_status_change', (data) => {
+    const userLi = document.getElementById(`user-${data.userId}`);
+    if (userLi) {
+      const indicator = userLi.querySelector('.status-indicator');
+      if (indicator) {
+        indicator.className = `status-indicator ${data.isOnline ? 'online' : 'offline'}`;
+      }
     }
   });
 };
@@ -154,9 +217,28 @@ const appendMessage = (message) => {
   container.scrollTop = container.scrollHeight;
 };
 
-const joinRoom = (room) => {
+const joinRoom = (room, name) => {
   currentRoom = room;
+  currentRoomName = name || 'Global Chat';
+  sessionStorage.setItem('currentRoom', currentRoom);
+  sessionStorage.setItem('currentRoomName', currentRoomName);
+
   document.getElementById('messages-container').innerHTML = '';
+  document.getElementById('room-name').textContent = currentRoomName;
+  
+  document.querySelectorAll('.room').forEach(el => el.classList.remove('active'));
+  
+  if (room === 'global') {
+    document.querySelector('#rooms-list .room')?.classList.add('active');
+  } else {
+    const userIds = room.split('_');
+    const otherId = userIds.find(id => id !== currentUser._id);
+    if (otherId) {
+      const userLi = document.getElementById(`user-${otherId}`);
+      if (userLi) userLi.classList.add('active');
+    }
+  }
+
   if (socket) {
     socket.emit('join_room', room);
   }

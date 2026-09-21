@@ -85,14 +85,22 @@ const switchTab = (tab) => {
   if (activeTab) activeTab.classList.add('active');
 
   const usernameGroup = document.getElementById('username-group');
+  const passwordInput = document.getElementById('password');
+  
   if (tab === 'register') {
     if (usernameGroup) usernameGroup.classList.remove('hidden');
     document.getElementById('username').required = true;
     document.getElementById('submit-btn').textContent = 'Register';
+    
+    passwordInput.pattern = '(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[@$!%*?&])[A-Za-z\\d@$!%*?&]{8,}';
+    passwordInput.title = 'Password must be at least 8 characters long, include an uppercase letter, a lowercase letter, a number, and a special character.';
   } else {
     if (usernameGroup) usernameGroup.classList.add('hidden');
     document.getElementById('username').required = false;
     document.getElementById('submit-btn').textContent = 'Login';
+    
+    passwordInput.removeAttribute('pattern');
+    passwordInput.removeAttribute('title');
   }
 };
 
@@ -105,6 +113,14 @@ const handleAuth = async (e) => {
   
   const endpoint = isRegister ? '/register' : '/login';
   const payload = isRegister ? { email, password, username } : { email, password };
+
+  if (isRegister) {
+    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+    if (!passwordRegex.test(password)) {
+      showError('Password must be at least 8 characters long, include an uppercase letter, a lowercase letter, a number, and a special character.');
+      return;
+    }
+  }
 
   try {
     const res = await fetch(`${API_URL}${endpoint}`, {
